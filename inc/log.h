@@ -21,6 +21,8 @@ namespace plugin
 			open(_path, mode);
 		}
 
+		std::string path() { return _path; }
+
 		void p(const std::string& message, bool add_nl = true, bool flush = true) {
 			if (!_stream.is_open())
 				return;

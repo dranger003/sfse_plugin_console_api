@@ -73,11 +73,13 @@ namespace plugin
 				if (!web_console_was_enabled && api_hosting.enable) {
 					plugin::app::server()->start(api_hosting.host, api_hosting.port);
 
-					auto running = plugin::app::server()->running();
-					if (running)
+					if (plugin::app::server()->wait_for_listening()) {
+						api_hosting.host = plugin::app::server()->host();
 						plugin::app::log()->i("http server started on http://{}:{}/", api_hosting.host, api_hosting.port);
-					else
+					}
+					else {
 						plugin::app::log()->i("http server not started (unable to start)");
+					}
 				}
 				else if (web_console_was_enabled && !api_hosting.enable) {
 					plugin::app::server()->stop();
@@ -256,6 +258,7 @@ namespace plugin
 
 				game::hooks::hook_console_execute_command::apply([](const std::string& command) -> bool {
 					static auto dump_config = []() {
+						game::console::printf("LOG path >> %s", plugin::app::log()->path().c_str());
 						game::console::printf("Plugin.bEnableFileOutput >> %u", (std::uint8_t)plugin::app::cfg()->file_output.enable);
 						game::console::printf("Plugin.bEnableWebConsole >> %u", (std::uint8_t)plugin::app::cfg()->api_hosting.enable);
 						game::console::printf("FileOutput.bOverwrite >> %u", (std::uint8_t)plugin::app::cfg()->file_output.overwrite);

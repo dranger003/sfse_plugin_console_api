@@ -14,6 +14,7 @@ namespace plugin
 	public:
 		server(int concurrency_hint = 1) :
 			_io_context(concurrency_hint),
+			_listening(false),
 			_port(0),
 			_disable_cors(false),
 			_disable_static_files(false)
@@ -27,6 +28,8 @@ namespace plugin
 
 			_host = host;
 			_port = port;
+
+			_listening = false;
 
 			_thread = std::thread([this]() {
 				boost::asio::co_spawn(_io_context, _async_listener(), boost::asio::detached);
@@ -45,6 +48,19 @@ namespace plugin
 		}
 
 		bool running() { return _thread.joinable(); }
+		std::string host() { return _host; }
+
+		bool wait_for_listening(std::uint32_t ms = 3000) {
+			auto ts = std::chrono::steady_clock::now();
+			while (!_listening) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - ts).count() > ms) {
+					return false;
+				}
+			}
+
+			return true;
+		}
 
 		void set_path(const std::string& path) { _path = path; }
 		void set_disable_cors(bool value) { _disable_cors = value; }
@@ -166,7 +182,9 @@ namespace plugin
 			if (endpoint.address().is_v6() && endpoint.address() == boost::asio::ip::address::from_string("::1"))
 				endpoint = boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), endpoint.port());
 
+			_host = endpoint.address().to_string(); // update host to resolved address for CORS
 			auto acceptor = boost::asio::ip::tcp::acceptor(_io_context, endpoint);
+			_listening = true;
 
 			while (true)
 			{
@@ -183,6 +201,7 @@ namespace plugin
 	private:
 		boost::asio::io_context _io_context;
 		std::thread _thread;
+		std::atomic<bool> _listening;
 		std::string _host;
 		std::uint16_t _port;
 		std::filesystem::path _path;
