@@ -59,7 +59,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>..\sfse;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\sfse;.\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -79,7 +79,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>..\sfse;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\sfse;.\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -90,31 +90,31 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="app.h" />
-    <ClInclude Include="config.h" />
-    <ClInclude Include="console.h" />
+    <ClInclude Include="inc\app.h" />
+    <ClInclude Include="inc\config.h" />
+    <ClInclude Include="inc\console.h" />
     <ClInclude Include="framework.h" />
-    <ClInclude Include="hooks.h" />
-    <ClInclude Include="log.h" />
+    <ClInclude Include="inc\hooks.h" />
+    <ClInclude Include="inc\log.h" />
     <ClInclude Include="pch.h" />
-    <ClInclude Include="plugin.h" />
-    <ClInclude Include="server.h" />
-    <ClInclude Include="utils.h" />
+    <ClInclude Include="inc\plugin.h" />
+    <ClInclude Include="inc\server.h" />
+    <ClInclude Include="inc\utils.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="app.cpp" />
-    <ClCompile Include="config.cpp" />
-    <ClCompile Include="console.cpp" />
+    <ClCompile Include="src\app.cpp" />
+    <ClCompile Include="src\config.cpp" />
+    <ClCompile Include="src\console.cpp" />
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="hooks.cpp" />
-    <ClCompile Include="log.cpp" />
+    <ClCompile Include="src\hooks.cpp" />
+    <ClCompile Include="src\log.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="plugin.cpp" />
-    <ClCompile Include="server.cpp" />
-    <ClCompile Include="utils.cpp" />
+    <ClCompile Include="src\plugin.cpp" />
+    <ClCompile Include="src\server.cpp" />
+    <ClCompile Include="src\utils.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
