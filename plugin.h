@@ -5,7 +5,7 @@
 
 #include "sfse_common/BranchTrampoline.h"
 #include "sfse_common/SafeWrite.h"
-#include "sfse/GameConsole.h"
+#include "sfse_common/Relocation.h"
 #include "xbyak/xbyak/xbyak.h"
 
 #ifdef _DEBUG
