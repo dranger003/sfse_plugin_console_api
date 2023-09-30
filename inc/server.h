@@ -14,7 +14,6 @@ namespace plugin
 	public:
 		server(int concurrency_hint = 1) :
 			_io_context(concurrency_hint),
-			_listening(false),
 			_port(0),
 			_disable_cors(false),
 			_disable_static_files(false)
@@ -22,37 +21,43 @@ namespace plugin
 
 		virtual ~server() { stop(); }
 
-		void start(const std::string& host, std::uint16_t port) {
+		bool start(const std::string& host, std::uint16_t port) {
 			if (running())
-				return;
+				return false;
 
 			_host = host;
 			_port = port;
 
-			_listening = false;
-
 			_thread = std::thread([this]() {
 				boost::asio::co_spawn(_io_context, _async_listener(), boost::asio::detached);
-
-				_io_context.restart();
 				_io_context.run();
 			});
+
+			return true;
 		}
 
-		void stop() {
+		bool stop() {
 			if (!running())
-				return;
+				return false;
+
+			if (_acceptor)
+				_acceptor->close();
 
 			_io_context.stop();
 			_thread.join();
+
+			_io_context.restart();
+
+			return true;
 		}
 
-		bool running() { return _thread.joinable(); }
+		bool running() { return (_acceptor && _acceptor->is_open()) && _thread.joinable(); }
+
 		std::string host() { return _host; }
 
 		bool wait_for_listening(std::uint32_t ms = 3000) {
 			auto ts = std::chrono::steady_clock::now();
-			while (!_listening) {
+			while (!(_acceptor && _acceptor->is_open())) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 				if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - ts).count() > ms) {
 					return false;
@@ -174,7 +179,9 @@ namespace plugin
 		}
 
 		co_async<void> _async_listener() {
-			auto resolver = boost::asio::ip::tcp::resolver(_io_context);
+			auto executor = co_await boost::asio::this_coro::executor;
+
+			auto resolver = boost::asio::ip::tcp::resolver(executor);
 			auto query = boost::asio::ip::tcp::resolver::query(_host, std::to_string(_port));
 			auto endpoint = boost::asio::ip::tcp::endpoint(*resolver.resolve(query).begin());
 
@@ -183,14 +190,13 @@ namespace plugin
 				endpoint = boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), endpoint.port());
 
 			_host = endpoint.address().to_string(); // update host to resolved address for CORS
-			auto acceptor = boost::asio::ip::tcp::acceptor(_io_context, endpoint);
-			_listening = true;
+			_acceptor = std::make_unique<boost::asio::ip::tcp::acceptor>(executor, endpoint);
 
 			while (true)
 			{
 				try {
-					auto socket = co_await acceptor.async_accept(_io_context, boost::asio::use_awaitable);
-					boost::asio::co_spawn(_io_context, _async_handle_request(std::move(socket)), boost::asio::detached);
+					auto socket = co_await _acceptor->async_accept(executor, boost::asio::use_awaitable);
+					boost::asio::co_spawn(executor, _async_handle_request(std::move(socket)), boost::asio::detached);
 				}
 				catch (std::exception&) {
 					break;
@@ -200,8 +206,8 @@ namespace plugin
 
 	private:
 		boost::asio::io_context _io_context;
+		std::unique_ptr<boost::asio::ip::tcp::acceptor> _acceptor;
 		std::thread _thread;
-		std::atomic<bool> _listening;
 		std::string _host;
 		std::uint16_t _port;
 		std::filesystem::path _path;

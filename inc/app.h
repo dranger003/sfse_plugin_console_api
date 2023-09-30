@@ -70,20 +70,24 @@ namespace plugin
 				plugin::app::server()->set_disable_static_files(api_hosting.disable_static_files);
 				plugin::app::server()->set_path(api_hosting.path);
 
-				if (!web_console_was_enabled && api_hosting.enable) {
-					plugin::app::server()->start(api_hosting.host, api_hosting.port);
-
-					if (plugin::app::server()->wait_for_listening()) {
-						api_hosting.host = plugin::app::server()->host();
-						plugin::app::log()->i("http server started on http://{}:{}/", api_hosting.host, api_hosting.port);
+				if (api_hosting.enable) {
+					if (plugin::app::server()->running()) {
+						plugin::app::server()->stop();
+						plugin::app::log()->i("http server stopped");
 					}
-					else {
+
+					if (!plugin::app::server()->start(api_hosting.host, api_hosting.port)) {
 						plugin::app::log()->i("http server not started (unable to start)");
 					}
-				}
-				else if (web_console_was_enabled && !api_hosting.enable) {
-					plugin::app::server()->stop();
-					plugin::app::log()->i("http server stopped");
+					else {
+						if (plugin::app::server()->wait_for_listening()) {
+							api_hosting.host = plugin::app::server()->host();
+							plugin::app::log()->i("http server started on http://{}:{}/", api_hosting.host, api_hosting.port);
+						}
+						else {
+							plugin::app::log()->i("http server not started (unable to start)");
+						}
+					}
 				}
 			}
 		};
