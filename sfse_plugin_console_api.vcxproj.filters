@@ -1,81 +1,75 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    <Filter Include="inc">
+      <UniqueIdentifier>{0c21422f-129f-48e1-b997-e4dcd92ac919}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    <Filter Include="src">
+      <UniqueIdentifier>{902226b5-6146-4f1b-a059-1c57d4a1f829}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="framework.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="pch.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\plugin.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="inc\utils.h">
+      <Filter>inc</Filter>
     </ClInclude>
     <ClInclude Include="inc\app.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\utils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\log.h">
-      <Filter>Header Files</Filter>
+      <Filter>inc</Filter>
     </ClInclude>
     <ClInclude Include="inc\config.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\hooks.h">
-      <Filter>Header Files</Filter>
+      <Filter>inc</Filter>
     </ClInclude>
     <ClInclude Include="inc\console.h">
-      <Filter>Header Files</Filter>
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="framework.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\hooks.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\log.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="pch.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\plugin.h">
+      <Filter>inc</Filter>
     </ClInclude>
     <ClInclude Include="inc\server.h">
-      <Filter>Header Files</Filter>
+      <Filter>inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="dllmain.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pch.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\plugin.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\utils.cpp">
+      <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\app.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\utils.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\log.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\config.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\hooks.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\console.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="dllmain.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\hooks.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\log.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\plugin.cpp">
+      <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\server.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -1,8 +1,29 @@
 #pragma once
 
+#define DECLARE_EVENT_SINK(ev)															\
+    class ev##EventSink : public BSTEventSink<ev##Event> {								\
+    public:																				\
+        virtual EventResult ProcessEvent(const ev##Event&, BSTEventSource<ev##Event>*);	\
+    };
+
+#define REGISTER_EVENT_SINK(ev)										\
+    static auto _##ev##EventSink = ev##EventSink();					\
+    GetEventSource<ev##Event>()->RegisterSink(&_##ev##EventSink);
+
+#define IMPLEMENT_EVENT_SINK_BEGIN(ev)																			\
+    EventResult ev##EventSink::ProcessEvent(const ev##Event& arEvent, BSTEventSource<ev##Event>* eventSource) {
+
+#define IMPLEMENT_EVENT_SINK_END(ev)										\
+        return BSTEventSink<ev##Event>::ProcessEvent(arEvent, eventSource);	\
+    }
+
 namespace plugin
 {
 	static PluginHandle handle = static_cast<PluginHandle>(0);
+
+	DECLARE_EVENT_SINK(TESContainerChanged)
+	DECLARE_EVENT_SINK(PlayerAddItem)
+	DECLARE_EVENT_SINK(MenuOpenClose)
 
 	class app
 	{
@@ -175,6 +196,15 @@ namespace plugin
 			}
 
 			plugin::app::log()->i("hooks applied");
+
+			{
+				REGISTER_EVENT_SINK(TESContainerChanged)
+				REGISTER_EVENT_SINK(PlayerAddItem)
+
+				auto ui = (BSTEventSource<MenuOpenCloseEvent>*)UI::GetSingleton();
+				static auto _MenuOpenCloseEventSink = MenuOpenCloseEventSink();
+				ui->RegisterSink(&_MenuOpenCloseEventSink);
+			}
 		}
 
 		void _postpostload() {
@@ -275,7 +305,7 @@ namespace plugin
 					};
 
 					auto match = std::smatch();
-					if (std::regex_search(command, match, std::regex(R"(^(\w+)\.(\w+)$)")) && match[1].str() == PLUGIN_NAME) {
+					if (std::regex_search(command, match, std::regex(R"(^(\w+)\.(\w+)(?: +([0-9a-fA-F]+))?$)")) && match[1].str() == PLUGIN_NAME) {
 						if (match[2] == "reload_config") {
 							game::console::printf(command.c_str());
 							std::thread([]() {
@@ -288,6 +318,16 @@ namespace plugin
 						else if (match[2] == "dump_config") {
 							game::console::printf(command.c_str());
 							dump_config();
+
+							return false;
+						}
+						else if (match[2] == "test") {
+							game::console::printf(command.c_str());
+							auto id = std::strtol(match[3].str().c_str(), nullptr, 0x10);
+							auto ref = (TESObjectREFR*)TESObjectREFR::GetFormByNumericID(id);
+							static char buf[4096] = {};
+							ref->GetFormDetailedString(&buf[0], sizeof(buf));
+							game::console::printf("[%s][%s][%s]", plugin::utils::form_type_names[ref->formType], ref->GetFullName(), buf);
 
 							return false;
 						}

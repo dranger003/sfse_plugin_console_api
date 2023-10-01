@@ -65,5 +65,7 @@ namespace plugin
 			auto timer = boost::asio::steady_timer(co_await boost::asio::this_coro::executor, std::chrono::milliseconds(MS));
 			co_await timer.async_wait(boost::asio::use_awaitable);
 		}
+
+		static const std::vector<std::string> form_type_names;
 	};
 }
