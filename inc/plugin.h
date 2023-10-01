@@ -1,12 +1,17 @@
 #pragma once
 
 #include "sfse/PluginAPI.h"
-#include "sfse_common/sfse_version.h"
 
+#include "sfse_common/sfse_version.h"
 #include "sfse_common/BranchTrampoline.h"
 #include "sfse_common/SafeWrite.h"
 #include "sfse_common/Relocation.h"
+
 #include "xbyak/xbyak/xbyak.h"
+
+#pragma warning(disable: 4200)
+#include "sfse/GameScript.h"
+#pragma warning(default: 4200)
 
 #ifdef _DEBUG
 #pragma comment(lib, "../sfse/sfse/build/sfse_common/Debug/sfse_common.lib")

@@ -31,6 +31,8 @@ namespace plugin
 			virtual void load(const std::string& path) {
 				plugin::config::load(path);
 
+				static auto first_run = true;
+
 				auto file_output_was_enabled = file_output.enable;
 				auto web_console_was_enabled = api_hosting.enable;
 
@@ -89,6 +91,8 @@ namespace plugin
 						}
 					}
 				}
+
+				first_run = false;
 			}
 		};
 
@@ -178,7 +182,7 @@ namespace plugin
 		}
 
 		void _postpostload() {
-			// unused
+			// unused for now
 		}
 
 		bool _init_log() {
@@ -260,9 +264,19 @@ namespace plugin
 					plugin::app::log()->i("game shutting down, http server stopped");
 				});
 
-				game::hooks::hook_console_execute_command::apply([](const std::string& command) -> bool {
-					static auto dump_config = []() {
-						game::console::printf("LOG path >> %s", plugin::app::log()->path().c_str());
+				{
+					static auto config_dump_fcn = [](
+						const SCRIPT_PARAMETER* paramInfo,
+						const char*,
+						TESObjectREFR* thisObj,
+						TESObjectREFR* containingObj,
+						Script* script,
+						ScriptLocals* locals,
+						float* result,
+						u32* opcodeOffsetPtr
+					) -> bool {
+						game::console::printf("log_path >> %s", plugin::app::log()->path().c_str());
+						game::console::printf("cfg_path >> %s\n", std::filesystem::absolute(plugin::app::cfg()->path()).string().c_str());
 						game::console::printf("Plugin.bEnableFileOutput >> %u", (std::uint8_t)plugin::app::cfg()->file_output.enable);
 						game::console::printf("Plugin.bEnableWebConsole >> %u", (std::uint8_t)plugin::app::cfg()->api_hosting.enable);
 						game::console::printf("FileOutput.bOverwrite >> %u", (std::uint8_t)plugin::app::cfg()->file_output.overwrite);
@@ -272,29 +286,52 @@ namespace plugin
 						game::console::printf("WebConsole.bDisableCORS >> %u", plugin::app::cfg()->api_hosting.disable_cors);
 						game::console::printf("WebConsole.bDisableStaticFiles >> %u", plugin::app::cfg()->api_hosting.disable_static_files);
 						game::console::printf("WebConsole.sStaticFilesPath >> %s", std::filesystem::absolute(plugin::app::cfg()->api_hosting.path).string().c_str());
+						return true;
 					};
 
-					auto match = std::smatch();
-					if (std::regex_search(command, match, std::regex(R"(^(\w+)\.(\w+)$)")) && match[1].str() == PLUGIN_NAME) {
-						if (match[2] == "reload_config") {
-							game::console::printf(command.c_str());
-							std::thread([]() {
-								plugin::app::cfg()->reload();
-								dump_config();
-							}).detach();
+					static auto config_reload_fcn = [](
+						const SCRIPT_PARAMETER* paramInfo,
+						const char*,
+						TESObjectREFR* thisObj,
+						TESObjectREFR* containingObj,
+						Script* script,
+						ScriptLocals* locals,
+						float* result,
+						u32* opcodeOffsetPtr
+					) -> bool {
+						std::thread([]() {
+							plugin::app::cfg()->reload();
+							auto text = "configuration reloaded";
+							plugin::app::log()->i(text);
+							game::console::printf(text);
+						}).detach();
+						return true;
+					};
 
-							return false;
-						}
-						else if (match[2] == "dump_config") {
-							game::console::printf(command.c_str());
-							dump_config();
+					static auto config_dump = Script::SCRIPT_FUNCTION{
+						.pFunctionName = "sfse_plugin_console_api_config_dump",
+						.pShortName = "",
+						.pHelpString = "Show the SFSE Console API Plugin configuration variables",
+						.bReferenceFunction = 0,
+						.sParamCount = 0,
+						.pExecuteFunction = config_dump_fcn,
+						.bEditorFilter = 0,
+						.bInvalidatesCellList = 0,
+					};
 
-							return false;
-						}
-					}
+					static auto config_reload = Script::SCRIPT_FUNCTION{
+						.pFunctionName = "sfse_plugin_console_api_config_reload",
+						.pShortName = "",
+						.pHelpString = "Reload the SFSE Console API Plugin configuration from the INI file",
+						.bReferenceFunction = 0,
+						.sParamCount = 0,
+						.pExecuteFunction = config_reload_fcn,
+						.bEditorFilter = 0,
+						.bInvalidatesCellList = 0,
+					};
 
-					return true;
-				});
+					game::hooks::hook_game_command_init::apply({ &config_dump, &config_reload });
+				}
 
 				game::hooks::hook_console_output_line::apply([](const std::string& line) -> bool {
 					if (plugin::app::cfg()->file_output.enable) {
