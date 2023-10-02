@@ -21,6 +21,7 @@ namespace plugin
 
 			struct {
 				bool enable;
+				std::uint32_t exec_timeout;
 				std::string host;
 				std::uint16_t port;
 				bool disable_cors;
@@ -45,6 +46,7 @@ namespace plugin
 				}
 
 				{ // WebConsole
+					api_hosting.exec_timeout = config::get<std::uint32_t>("WebConsole.iExecTimeout", 100);
 					api_hosting.host = config::get<std::string>("WebConsole.sHost", "127.0.0.1");
 					api_hosting.port = config::get<std::uint32_t>("WebConsole.iPort", 55555);
 					api_hosting.disable_cors = config::get<bool>("WebConsole.bDisableCORS", false);
@@ -211,12 +213,12 @@ namespace plugin
 
 					while (!done) {
 						while (!plugin::app::console_output_queue()->pop(output_line)) {
-							if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timestamp).count() > 500) {
+							if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timestamp).count() > plugin::app::cfg()->api_hosting.exec_timeout) {
 								done = true;
 								break;
 							}
 
-							plugin::utils::async_sleep<10>();
+							co_await plugin::utils::async_sleep<1>();
 						}
 
 						if (done)
@@ -262,11 +264,13 @@ namespace plugin
 
 				game::hooks::hook_console_execute_command::apply([](const std::string& command) -> bool {
 					static auto dump_config = []() {
-						game::console::printf("LOG path >> %s", plugin::app::log()->path().c_str());
+						game::console::printf("INI path >> %s", std::filesystem::canonical(plugin::app::cfg()->path()).string().c_str());
+						game::console::printf("LOG path >> %s\n", std::filesystem::canonical(plugin::app::log()->path()).string().c_str());
 						game::console::printf("Plugin.bEnableFileOutput >> %u", (std::uint8_t)plugin::app::cfg()->file_output.enable);
 						game::console::printf("Plugin.bEnableWebConsole >> %u", (std::uint8_t)plugin::app::cfg()->api_hosting.enable);
 						game::console::printf("FileOutput.bOverwrite >> %u", (std::uint8_t)plugin::app::cfg()->file_output.overwrite);
 						game::console::printf("FileOutput.sPath >> %s", std::filesystem::absolute(plugin::app::cfg()->file_output.path).string().c_str());
+						game::console::printf("WebConsole.iExecTimeout >> %u", plugin::app::cfg()->api_hosting.exec_timeout);
 						game::console::printf("WebConsole.sHost >> %s", plugin::app::cfg()->api_hosting.host.c_str());
 						game::console::printf("WebConsole.iPort >> %u", plugin::app::cfg()->api_hosting.port);
 						game::console::printf("WebConsole.bDisableCORS >> %u", plugin::app::cfg()->api_hosting.disable_cors);
@@ -303,7 +307,7 @@ namespace plugin
 
 					if (plugin::app::cfg()->api_hosting.enable) {
 						while (!plugin::app::console_output_queue()->push(line))
-							std::this_thread::sleep_for(std::chrono::milliseconds(100));
+							std::this_thread::sleep_for(std::chrono::milliseconds(1));
 					}
 
 					return true;

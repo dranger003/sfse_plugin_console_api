@@ -29,6 +29,10 @@ namespace plugin
 			}
 		}
 
+		const std::string& path() {
+			return _path;
+		}
+
 	private:
 		std::string _path;
 		boost::property_tree::ptree _ptree;
