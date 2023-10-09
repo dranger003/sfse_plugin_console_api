@@ -201,6 +201,20 @@ namespace plugin
 					boost::beast::http::request<boost::beast::http::string_body>& request,
 					boost::beast::http::response<boost::beast::http::string_body>& response
 				) -> co_async<bool> {
+					auto query = plugin::utils::parse_http_query(request.target());
+					auto timeout = plugin::app::cfg()->api_hosting.exec_timeout;
+
+					{
+						auto it = query.find("timeout");
+						if (it != query.end()) {
+							try {
+								timeout = std::atoi(it->second.c_str());
+							}
+							catch (std::exception&) {
+							}
+						}
+					}
+
 					plugin::app::console_output_queue()->consume_all([](std::string&) {});
 
 					auto command = request.body();
@@ -213,7 +227,7 @@ namespace plugin
 
 					while (!done) {
 						while (!plugin::app::console_output_queue()->pop(output_line)) {
-							if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timestamp).count() > plugin::app::cfg()->api_hosting.exec_timeout) {
+							if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timestamp).count() > timeout) {
 								done = true;
 								break;
 							}
@@ -278,23 +292,20 @@ namespace plugin
 						game::console::printf("WebConsole.sStaticFilesPath >> %s", std::filesystem::absolute(plugin::app::cfg()->api_hosting.path).string().c_str());
 					};
 
-					auto match = std::smatch();
-					if (std::regex_search(command, match, std::regex(R"(^(\w+)\.(\w+)$)")) && match[1].str() == PLUGIN_NAME) {
-						if (match[2] == "reload_config") {
-							game::console::printf(command.c_str());
-							std::thread([]() {
-								plugin::app::cfg()->reload();
-								dump_config();
-							}).detach();
-
-							return false;
-						}
-						else if (match[2] == "dump_config") {
-							game::console::printf(command.c_str());
+					if (command == PLUGIN_NAME "_reload_config") {
+						game::console::printf(command.c_str());
+						std::thread([]() {
+							plugin::app::cfg()->reload();
 							dump_config();
+						}).detach();
 
-							return false;
-						}
+						return false;
+					}
+					else if (command == PLUGIN_NAME "_dump_config") {
+						game::console::printf(command.c_str());
+						dump_config();
+
+						return false;
 					}
 
 					return true;
