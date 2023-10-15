@@ -100,6 +100,7 @@
     <ClInclude Include="inc\plugin.h" />
     <ClInclude Include="inc\server.h" />
     <ClInclude Include="inc\utils.h" />
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\app.cpp" />
@@ -115,6 +116,9 @@
     <ClCompile Include="src\plugin.cpp" />
     <ClCompile Include="src\server.cpp" />
     <ClCompile Include="src\utils.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

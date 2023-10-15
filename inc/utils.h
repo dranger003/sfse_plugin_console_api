@@ -46,18 +46,23 @@ namespace plugin
 			return expanded_path;
 		}
 
-		static std::map<std::string, std::string> parse_http_query(const std::string& query) {
-			auto data = std::map<std::string, std::string>();
-			auto regex = std::regex("([^&=]+)=([^&]*)");
+		static std::string encode_base64(const std::string& input) {
+			typedef boost::archive::iterators::base64_from_binary<boost::archive::iterators::transform_width<std::string::const_iterator, 6, 8>> base64_enc;
 
-			for (std::sregex_iterator i = std::sregex_iterator(query.begin(), query.end(), regex);
-				i != std::sregex_iterator();
-				++i) {
-				std::smatch match = *i;
-				data[match[1]] = match[2];
-			}
+			std::stringstream ss;
+			std::copy(base64_enc(input.begin()), base64_enc(input.end()), boost::archive::iterators::ostream_iterator<char>(ss));
 
-			return data;
+			return ss.str();
+		}
+
+		static std::uint64_t create_endpoint_id(const boost::asio::ip::tcp::endpoint& endpoint) {
+			auto address_bytes = endpoint.address().to_v4().to_bytes();
+			auto ip = (static_cast<uint32_t>(address_bytes[0]) << 24) |
+				(static_cast<uint32_t>(address_bytes[1]) << 16) |
+				(static_cast<uint32_t>(address_bytes[2]) << 8) |
+				(static_cast<uint32_t>(address_bytes[3]));
+			auto port = endpoint.port();
+			return (static_cast<uint64_t>(ip) << 16) | port;
 		}
 
 		template<std::chrono::milliseconds::rep MS>

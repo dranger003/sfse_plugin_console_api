@@ -119,9 +119,9 @@ namespace plugin
 			return &_output;
 		}
 
-		static boost::lockfree::spsc_queue<std::string, boost::lockfree::capacity<4096>>* console_output_queue() {
-			static auto _queue = boost::lockfree::spsc_queue<std::string, boost::lockfree::capacity<4096>>();
-			return &_queue;
+		static std::unordered_map<std::uint64_t, boost::lockfree::spsc_queue<std::string, boost::lockfree::capacity<4096>>*>* console_output_queues() {
+			static auto _queues = std::unordered_map<std::uint64_t, boost::lockfree::spsc_queue<std::string, boost::lockfree::capacity<4096>>*>();
+			return &_queues;
 		}
 
 		bool preload(const SFSEInterface*) {
@@ -135,6 +135,8 @@ namespace plugin
 		}
 
 	private:
+		enum console_mode_t { command, stream };
+
 		static void _event_callback(SFSEMessagingInterface::Message* message) {
 			switch (message->type) {
 			case SFSEMessagingInterface::kMessage_PostLoad:
@@ -196,60 +198,136 @@ namespace plugin
 
 		bool _init_server() {
 			try {
+				static std::atomic<std::uint64_t> next_queue_id = 0;
+
 				static auto console_endpoint = [](
 					boost::asio::ip::tcp::socket& socket,
 					boost::beast::http::request<boost::beast::http::string_body>& request,
 					boost::beast::http::response<boost::beast::http::string_body>& response
 				) -> co_async<bool> {
-					auto query = plugin::utils::parse_http_query(request.target());
 					auto timeout = plugin::app::cfg()->api_hosting.exec_timeout;
+					auto mode = console_mode_t::command;
 
-					{
-						auto it = query.find("timeout");
-						if (it != query.end()) {
+					auto url = boost::urls::url_view(request.target());
+					for (auto param : url.params()) {
+						if (param.key == "timeout") {
 							try {
-								timeout = std::atoi(it->second.c_str());
+								timeout = std::atoi(param.value.c_str());
 							}
 							catch (std::exception&) {
 							}
 						}
+						else if (param.key == "mode") {
+							if (param.value == "command") {
+								mode = console_mode_t::command;
+							}
+							else if (param.value == "stream") {
+								mode = console_mode_t::stream;
+							}
+							else {
+								try {
+									mode = (console_mode_t)std::atoi(param.value.c_str());
+								}
+								catch (std::exception&) {
+								}
+							}
+						}
 					}
 
-					plugin::app::console_output_queue()->consume_all([](std::string&) {});
+					if (mode == console_mode_t::command) {
+						auto command = request.body();
+						std::thread([&command]() {
+							game::console::execute(command.c_str());
+						}).detach();
 
-					auto command = request.body();
-					game::console::execute(command.c_str());
+						auto done = false;
+						auto timestamp = std::chrono::steady_clock::now();
+						auto body = std::ostringstream();
 
-					auto done = false;
-					auto output_line = std::string();
-					auto timestamp = std::chrono::steady_clock::now();
-					auto body = std::ostringstream();
+						auto queue_id = next_queue_id.fetch_add(1, std::memory_order_relaxed);
+						auto queue = boost::lockfree::spsc_queue<std::string, boost::lockfree::capacity<4096>>();
+						plugin::app::console_output_queues()->emplace(queue_id, &queue);
 
-					while (!done) {
-						while (!plugin::app::console_output_queue()->pop(output_line)) {
-							if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timestamp).count() > timeout) {
-								done = true;
-								break;
+						try {
+							while (!done) {
+								auto output_line = std::string();
+								while (!queue.pop(output_line)) {
+									if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timestamp).count() > timeout) {
+										done = true;
+										break;
+									}
+
+									co_await plugin::utils::async_sleep<1>();
+								}
+
+								if (done)
+									continue;
+
+								body << output_line;
+								timestamp = std::chrono::steady_clock::now();
 							}
-
-							co_await plugin::utils::async_sleep<1>();
+						}
+						catch (std::exception&) {
 						}
 
-						if (done)
-							continue;
+						auto it = plugin::app::console_output_queues()->find(queue_id);
+						if (it != plugin::app::console_output_queues()->end())
+							plugin::app::console_output_queues()->erase(it);
 
-						body << output_line;
-						timestamp = std::chrono::steady_clock::now();
+						response.set(boost::beast::http::field::content_type, "text/plain");
+						response.set(boost::beast::http::field::cache_control, "no-cache");
+						response.body() = body.str();
 					}
+					else if (mode == console_mode_t::stream) {
+						auto command = request.body();
+						std::thread([&command]() {
+							game::console::execute(command.c_str());
+						}).detach();
 
-					response.set(boost::beast::http::field::content_type, "text/plain");
-					response.set(boost::beast::http::field::cache_control, "no-cache");
-					response.body() = body.str();
+						response.result(boost::beast::http::status::ok);
+					}
 
 					co_return true;
 				};
 
+				static auto stream_endpoint = [](
+					boost::asio::ip::tcp::socket& socket,
+					boost::beast::http::request<boost::beast::http::string_body>& request,
+					boost::beast::http::response<boost::beast::http::string_body>& response
+				) -> co_async<bool> {
+					response.set(boost::beast::http::field::content_type, "text/event-stream");
+					response.set(boost::beast::http::field::cache_control, "no-cache");
+					response.set(boost::beast::http::field::connection, "keep-alive");
+					response.keep_alive(true);
+
+					co_await boost::beast::http::async_write(socket, response, boost::asio::use_awaitable);
+
+					auto queue_id = next_queue_id.fetch_add(1, std::memory_order_relaxed);
+					auto queue = boost::lockfree::spsc_queue<std::string, boost::lockfree::capacity<4096>>();
+					plugin::app::console_output_queues()->emplace(queue_id, &queue);
+
+					try {
+						while (true) {
+							auto output_line = std::string();
+							while (!queue.pop(output_line))
+								co_await plugin::utils::async_sleep<1>();
+
+							auto data = std::format("data: {}\n\n", plugin::utils::encode_base64(output_line));
+							co_await boost::asio::async_write(socket, boost::asio::buffer(data), boost::asio::use_awaitable);
+						}
+					}
+					catch (std::exception&) {
+					}
+
+					auto it = plugin::app::console_output_queues()->find(queue_id);
+					if (it != plugin::app::console_output_queues()->end())
+						plugin::app::console_output_queues()->erase(it);
+
+					co_return false;
+				};
+
 				plugin::app::server()->map_post("/console", console_endpoint);
+				plugin::app::server()->map_get("/stream", stream_endpoint);
 
 				return true;
 			}
@@ -289,7 +367,12 @@ namespace plugin
 						game::console::printf("WebConsole.iPort >> %u", plugin::app::cfg()->api_hosting.port);
 						game::console::printf("WebConsole.bDisableCORS >> %u", plugin::app::cfg()->api_hosting.disable_cors);
 						game::console::printf("WebConsole.bDisableStaticFiles >> %u", plugin::app::cfg()->api_hosting.disable_static_files);
-						game::console::printf("WebConsole.sStaticFilesPath >> %s", std::filesystem::absolute(plugin::app::cfg()->api_hosting.path).string().c_str());
+						game::console::printf("WebConsole.sStaticFilesPath >> %s\n", std::filesystem::absolute(plugin::app::cfg()->api_hosting.path).string().c_str());
+						game::console::printf("URL web console (command mode) >> http://%s:%u/?mode=command", plugin::app::cfg()->api_hosting.host.c_str(), plugin::app::cfg()->api_hosting.port);
+						game::console::printf("URL web console (stream mode) >> http://%s:%u/?mode=stream", plugin::app::cfg()->api_hosting.host.c_str(), plugin::app::cfg()->api_hosting.port);
+						game::console::printf("URL input/output API (command mode) >> http://%s:%u/console?mode=command&timeout=100", plugin::app::cfg()->api_hosting.host.c_str(), plugin::app::cfg()->api_hosting.port);
+						game::console::printf("URL input API (stream mode) >> http://%s:%u/console?mode=stream&timeout=100", plugin::app::cfg()->api_hosting.host.c_str(), plugin::app::cfg()->api_hosting.port);
+						game::console::printf("URL output API (stream mode) >> http://%s:%u/stream", plugin::app::cfg()->api_hosting.host.c_str(), plugin::app::cfg()->api_hosting.port);
 					};
 
 					if (command == PLUGIN_NAME "_reload_config") {
@@ -317,8 +400,10 @@ namespace plugin
 					}
 
 					if (plugin::app::cfg()->api_hosting.enable) {
-						while (!plugin::app::console_output_queue()->push(line))
-							std::this_thread::sleep_for(std::chrono::milliseconds(1));
+						for (auto& queue : *plugin::app::console_output_queues()) {
+							while (!queue.second->push(line))
+								std::this_thread::sleep_for(std::chrono::milliseconds(1));
+						}
 					}
 
 					return true;

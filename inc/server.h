@@ -87,16 +87,21 @@ namespace plugin
 			boost::beast::http::response<boost::beast::http::string_body>& response,
 			const std::unordered_map<std::string, server::handler_t>& handlers
 		) {
+			auto regex = std::regex("^(\\/[^/?]+)");
+			auto match = std::smatch();
 			auto target = std::string(request.target());
-			auto it = handlers.find(target);
 
-			if (it != handlers.end()) {
-				if (co_await it->second(socket, request, response)) {
-					response.prepare_payload();
-					co_await boost::beast::http::async_write(socket, response, boost::asio::use_awaitable);
+			if (std::regex_search(target, match, regex) && match.size() > 1) {
+				auto it = handlers.find(match[1].str());
+
+				if (it != handlers.end()) {
+					if (co_await it->second(socket, request, response)) {
+						response.prepare_payload();
+						co_await boost::beast::http::async_write(socket, response, boost::asio::use_awaitable);
+					}
+
+					co_return true;
 				}
-
-				co_return true;
 			}
 
 			co_return false;
@@ -108,7 +113,8 @@ namespace plugin
 			boost::beast::http::response<boost::beast::http::string_body>& response
 		) {
 			auto path = std::filesystem::absolute(_path);
-			auto target = std::filesystem::path(std::string(request.target())).relative_path();
+			auto url = boost::urls::url_view(request.target());
+			auto target = std::filesystem::path(std::string(url.path())).relative_path();
 
 			path /= target;
 
