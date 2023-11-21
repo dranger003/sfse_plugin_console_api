@@ -4,11 +4,11 @@ extern "C"
 {
 	PLUGIN_API SFSEPluginVersionData SFSEPlugin_Version = {
 		SFSEPluginVersionData::kVersion,
-		1,
+		2,
 		PLUGIN_NAME,
 		PLUGIN_AUTHOR,
-		0,
-		0,
+		SFSEPluginVersionData::kAddressIndependence_Signatures,
+		SFSEPluginVersionData::kStructureIndependence_NoStructs,
 		PLUGIN_COMPATIBLE_VERSIONS,
 		0,
 		0,

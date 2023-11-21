@@ -8,6 +8,14 @@
 #include "sfse_common/Relocation.h"
 #include "xbyak/xbyak/xbyak.h"
 
+#pragma warning(disable: 4200)
+#include "sfse/GameReferences.h"
+#include "sfse/GameScript.h"
+#include "sfse/GameMenu.h"
+#include "sfse/GameUI.h"
+#include "sfse/GameData.h"
+#pragma warning(default: 4200)
+
 #ifdef _DEBUG
 #pragma comment(lib, "../sfse/sfse/build/sfse_common/Debug/sfse_common.lib")
 #else
@@ -17,4 +25,4 @@
 #define PLUGIN_API						__declspec(dllexport)
 #define PLUGIN_NAME						"sfse_plugin_console_api"
 #define PLUGIN_AUTHOR					"stonegdi"
-#define PLUGIN_COMPATIBLE_VERSIONS		{ RUNTIME_VERSION_1_7_36, 0 }
+#define PLUGIN_COMPATIBLE_VERSIONS		{ RUNTIME_VERSION_1_8_86, 0 }

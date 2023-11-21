@@ -204,7 +204,8 @@ namespace plugin
 					auto socket = co_await _acceptor->async_accept(executor, boost::asio::use_awaitable);
 					boost::asio::co_spawn(executor, _async_handle_request(std::move(socket)), boost::asio::detached);
 				}
-				catch (std::exception&) {
+				catch (std::exception& ex) {
+					auto what = ex.what();
 					break;
 				}
 			}

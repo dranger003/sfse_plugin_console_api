@@ -4,6 +4,8 @@ namespace plugin
 {
 	static PluginHandle handle = static_cast<PluginHandle>(0);
 
+	//DECLARE_EVENT_SINK2(Spaceship::PlanetScanEvent, Spaceship_PlanetScanEvent)
+
 	class app
 	{
 	private:
@@ -78,10 +80,12 @@ namespace plugin
 						plugin::app::log()->i("http server stopped");
 					}
 
+					plugin::app::log()->i("starting http server");
 					if (!plugin::app::server()->start(api_hosting.host, api_hosting.port)) {
 						plugin::app::log()->i("http server not started (unable to start)");
 					}
 					else {
+						plugin::app::log()->i("waiting for listening http server");
 						if (plugin::app::server()->wait_for_listening()) {
 							api_hosting.host = plugin::app::server()->host();
 							plugin::app::log()->i("http server started on http://{}:{}/", api_hosting.host, api_hosting.port);
@@ -130,8 +134,37 @@ namespace plugin
 		}
 
 		bool load(const SFSEInterface* sfse) {
-			auto messaging = static_cast<SFSEMessagingInterface*>(sfse->QueryInterface(kInterface_Messaging));
-			return messaging->RegisterListener(plugin::handle, "SFSE", &app::_event_callback);
+			try {
+				auto menu = static_cast<SFSEMenuInterface*>(sfse->QueryInterface(kInterface_Menu));
+				menu->RegisterMenuMovieCreated(&app::_menu_callback);
+				menu->RegisterScaleformManagerCreated(&app::_scaleform_callback);
+			}
+			catch (std::exception&) {
+				plugin::app::log()->e("unable to register menu callback");
+			}
+
+			try {
+				auto messaging = static_cast<SFSEMessagingInterface*>(sfse->QueryInterface(kInterface_Messaging));
+				messaging->RegisterListener(plugin::handle, "SFSE", &app::_event_callback);
+			}
+			catch (std::exception&) {
+				plugin::app::log()->e("unable to register messaging callback");
+			}
+
+			try {
+				auto task = static_cast<SFSETaskInterface*>(sfse->QueryInterface(kInterface_Task));
+
+				static auto task_once = task_caller(&_task_once_run_callback, &_task_once_destroy_callback);
+				static auto task_permanent = task_caller(&_task_permanent_run_callback);
+
+				task->AddTask(&task_once);
+				task->AddTaskPermanent(&task_permanent);
+			}
+			catch (std::exception&) {
+				plugin::app::log()->e("unable to register task callback");
+			}
+
+			return true;
 		}
 
 	private:
@@ -145,7 +178,33 @@ namespace plugin
 			case SFSEMessagingInterface::kMessage_PostPostLoad:
 				plugin::app::inst()->_postpostload();
 				break;
+			case SFSEMessagingInterface::kMessage_PostDataLoad:
+				plugin::app::inst()->_postdataload();
+				break;
+			case SFSEMessagingInterface::kMessage_PostPostDataLoad:
+				plugin::app::inst()->_postpostdataload();
+				break;
 			}
+		}
+
+		static void _menu_callback(IMenu* menu) {
+			// unused
+		}
+
+		static void _scaleform_callback(BSScaleformManager* mgr) {
+			// unused
+		}
+
+		static void _task_once_run_callback() {
+			// unused
+		}
+
+		static void _task_once_destroy_callback() {
+			// unused
+		}
+
+		static void _task_permanent_run_callback() {
+			// unused
 		}
 
 		void _postload() {
@@ -179,9 +238,21 @@ namespace plugin
 			}
 
 			plugin::app::log()->i("hooks applied");
+
+			//{
+			//	REGISTER_EVENT_SINK2(Spaceship::PlanetScanEvent, Spaceship_PlanetScanEvent)
+			//}
 		}
 
 		void _postpostload() {
+			// unused
+		}
+
+		void _postdataload() {
+			// unused
+		}
+
+		void _postpostdataload() {
 			// unused
 		}
 
@@ -390,6 +461,36 @@ namespace plugin
 
 						return false;
 					}
+					else if (command == "cls") {
+						for (auto menu : UI::GetSingleton()->openMenus) {
+							if (menu->MenuName == "Console") {
+								menu->MenuObj.Invoke("ClearHistory");
+								return false;
+							}
+						}
+
+						return true;
+					}
+					//else if (command == "test1") {
+					//	auto dataHandler = TESDataHandler::GetSingleton();
+					//	for (auto item : dataHandler->pFormArray[static_cast<std::uint32_t>(FormType::kCELL)].pFormsA) {
+					//		auto cell = static_cast<TESObjectREFR*>(item);
+					//		auto name1 = std::string(1024, '\0');
+					//		cell->GetFormDetailedString(name1.data(), static_cast<u32>(name1.capacity()));
+					//		auto name2 = std::string(cell->GetFullName());
+					//		auto ts = plugin::utils::get_timestamp();
+					//		game::console::printf("[%s][%s][%s]", ts.c_str(), name2.c_str(), name1.c_str());
+					//	}
+
+					//	return false;
+					//}
+					//else if (command == "test2") {
+					//	//BSTEventSource<Spaceship::PlanetScanEvent>().RegisterSink();
+
+					//	//template<> inline BSTEventSource<Spaceship::PlanetScanEvent>* GetEventSource() {
+					//	//    typedef BSTEventSource<Spaceship::PlanetScanEvent>* (*_GetEventSource)(); RelocAddr<_GetEventSource> GetEventSource(0x02B8000C); return GetEventSource();
+					//	//}
+					//}
 
 					return true;
 				});
@@ -415,5 +516,19 @@ namespace plugin
 				return false;
 			}
 		}
+
+		class task_caller : public SFSETaskInterface::ITaskDelegate
+		{
+		public:
+			task_caller(void (*run)(), void(*destroy)() = nullptr) : _run(run), _destroy(destroy)
+			{}
+
+			void Run() { if (_run) _run(); }
+			void Destroy() { if (_destroy) _destroy(); }
+
+		private:
+			void(*_run)();
+			void(*_destroy)();
+		};
 	};
 }
