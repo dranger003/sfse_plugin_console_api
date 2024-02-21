@@ -6,8 +6,8 @@ namespace game
 	{
 	public:
 		static void printf(const char* fmt, ...) {
-			static auto p1 = RelocAddr<std::uintptr_t*>(0x0598E4D0); // 5978050
-			static auto p2 = RelocAddr<std::uintptr_t(*)(std::uintptr_t, const char*, va_list)>(0x028A1408); // 2894E68
+			static auto p1 = RelocAddr<std::uintptr_t*>(0x06581990);
+			static auto p2 = RelocAddr<std::uintptr_t(*)(std::uintptr_t, const char*, va_list)>(0x028D8AD8);
 
 			if (*p1 && p2) {
 				auto args = va_list();
@@ -18,7 +18,7 @@ namespace game
 		}
 
 		static std::uintptr_t execute(const char* cmd) {
-			static auto p1 = RelocAddr<std::uintptr_t(*)(std::double_t, const char*)>(0x0289B994); // 288F3F4
+			static auto p1 = RelocAddr<std::uintptr_t(*)(std::double_t, const char*)>(0x028D3064);
 			return p1 ? (*p1)(0.0, cmd) : 0;
 		}
 	};
