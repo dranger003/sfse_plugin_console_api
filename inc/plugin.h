@@ -25,4 +25,4 @@
 #define PLUGIN_API						__declspec(dllexport)
 #define PLUGIN_NAME						"sfse_plugin_console_api"
 #define PLUGIN_AUTHOR					"stonegdi"
-#define PLUGIN_COMPATIBLE_VERSIONS		{ RUNTIME_VERSION_1_13_61, 0 }
+#define PLUGIN_COMPATIBLE_VERSIONS		{ RUNTIME_VERSION_1_14_70, 0 }
