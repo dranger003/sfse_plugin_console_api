@@ -52,8 +52,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,14,0,0
- PRODUCTVERSION 2,14,0,0
+ FILEVERSION 2,15,0,0
+ PRODUCTVERSION 2,15,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -70,12 +70,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "stonegdi"
             VALUE "FileDescription", "sfse_plugin_console_api"
-            VALUE "FileVersion", "2.14.0.0"
+            VALUE "FileVersion", "2.15.0.0"
             VALUE "InternalName", "sfse_plugin_console_api"
-            VALUE "LegalCopyright", "Copyright (C) 2024"
+            VALUE "LegalCopyright", "Copyright (C) 2025"
             VALUE "OriginalFilename", "sfse_plugin_console_api.dll"
             VALUE "ProductName", "SFSE Plugin Console API"
-            VALUE "ProductVersion", "2.14.0.0"
+            VALUE "ProductVersion", "2.15.0.0"
         END
     END
     BLOCK "VarFileInfo"

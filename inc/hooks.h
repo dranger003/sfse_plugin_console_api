@@ -19,7 +19,7 @@ namespace game
 
 		class hook_game_shutting_down {
 		private:
-			static const std::uintptr_t rva = 0x025DF8CC; // 0x025DF65C
+			static const std::uintptr_t rva = 0x018282E0; // 0x025DF8CC
 
 			struct ret_t : Xbyak::CodeGenerator {
 				ret_t() {
@@ -64,16 +64,15 @@ namespace game
 
 		class hook_console_execute_command {
 		private:
-			static const std::uintptr_t rva = 0x02AE2684; // 0x02AE23D4
+			static const std::uintptr_t rva = 0x01E2B680; // 0x02AE2684
 
 			struct ret_t : Xbyak::CodeGenerator {
 				ret_t() {
 					Xbyak::Label label1;
-					mov(rax, rsp);									//    /00/00/D | 48 8B C4                             | 48 8B C4
-					mov(ptr[rax + 0x10], rdx);						// DSP/03/01/D | 48 89 50 10                          | 48 89 50 ??
+					mov(ptr[rsp + 0x10], rdx);							// DSP/04/01/D | 48 89 54 24 10                       | 48 89 54 24 ??
 					jmp(ptr[rip + label1]);
 					L(label1);
-					dq(RelocAddr<std::uintptr_t>(rva + 7).getUIntPtr());
+					dq(RelocAddr<std::uintptr_t>(rva + 5).getUIntPtr());
 				}
 			};
 
@@ -107,7 +106,7 @@ namespace game
 
 		class hook_console_output_line {
 		private:
-			static const std::uintptr_t rva = 0x02AE7F25; // 0x02AE7C75
+			static const std::uintptr_t rva = 0x01E34339; // 0x02AE7F25
 
 			struct ret_t : Xbyak::CodeGenerator {
 				ret_t() {

@@ -188,12 +188,12 @@ namespace plugin
 			auto executor = co_await boost::asio::this_coro::executor;
 
 			auto resolver = boost::asio::ip::tcp::resolver(executor);
-			auto query = boost::asio::ip::tcp::resolver::query(_host, std::to_string(_port));
-			auto endpoint = boost::asio::ip::tcp::endpoint(*resolver.resolve(query).begin());
+			auto results = resolver.resolve(_host, std::to_string(_port));
+			boost::asio::ip::tcp::endpoint endpoint = *results.begin();
 
 			// map IPv6 ::1 to IPv4 127.0.0.1
-			if (endpoint.address().is_v6() && endpoint.address() == boost::asio::ip::address::from_string("::1"))
-				endpoint = boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), endpoint.port());
+			if (endpoint.address().is_v6() && endpoint.address() == boost::asio::ip::make_address("::1"))
+				endpoint = boost::asio::ip::tcp::endpoint(boost::asio::ip::make_address("127.0.0.1"), endpoint.port());
 
 			_host = endpoint.address().to_string(); // update host to resolved address for CORS
 			_acceptor = std::make_unique<boost::asio::ip::tcp::acceptor>(executor, endpoint);
