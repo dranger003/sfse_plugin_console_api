@@ -17,9 +17,10 @@ namespace game
 			}
 		}
 
-		static std::uintptr_t execute(const char* cmd) {
-			static auto p1 = RelocAddr<std::uintptr_t(*)(std::double_t, const char*)>(0x01E2B680); // 0x02AE2684
-			return p1 ? (*p1)(0.0, cmd) : 0;
+		static void execute(const std::string& cmd) {
+			static auto p1 = RelocAddr<std::uintptr_t*>(0x0619CDD0);
+			static auto p2 = RelocAddr<void(*)(std::uintptr_t, const char*)>(0x01E2B680); // 0x02AE2684
+			(*p2)(*p1, cmd.data());
 		}
 	};
 }

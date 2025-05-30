@@ -307,9 +307,9 @@ namespace plugin
 
 					if (mode == console_mode_t::command) {
 						auto command = request.body();
-						std::thread([&command]() {
-							game::console::execute(command.c_str());
-						}).detach();
+						std::thread([](std::string cmd) {
+							game::console::execute(cmd);
+						}, command).detach();
 
 						auto done = false;
 						auto timestamp = std::chrono::steady_clock::now();
@@ -351,9 +351,9 @@ namespace plugin
 					}
 					else if (mode == console_mode_t::stream) {
 						auto command = request.body();
-						std::thread([&command]() {
-							game::console::execute(command.c_str());
-						}).detach();
+						std::thread([](std::string cmd) {
+							game::console::execute(cmd);
+						}, command).detach();
 
 						response.result(boost::beast::http::status::ok);
 					}

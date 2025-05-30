@@ -64,15 +64,19 @@ namespace game
 
 		class hook_console_execute_command {
 		private:
-			static const std::uintptr_t rva = 0x01E2B680; // 0x02AE2684
+			static const std::uintptr_t rva = 0x01E2B68F; // 0x02AE2684
 
 			struct ret_t : Xbyak::CodeGenerator {
 				ret_t() {
 					Xbyak::Label label1;
-					mov(ptr[rsp + 0x10], rdx);							// DSP/04/01/D | 48 89 54 24 10                       | 48 89 54 24 ??
+					push(rbp);										// /00/00/D | 55                                   | 55
+					push(rbx);										// /00/00/D | 53                                   | 53
+					push(rsi);										// /00/00/D | 56                                   | 56
+					push(rdi);										// /00/00/D | 57                                   | 57
+					push(r12);										// /00/00/D | 41 54                                | 41 54
 					jmp(ptr[rip + label1]);
 					L(label1);
-					dq(RelocAddr<std::uintptr_t>(rva + 5).getUIntPtr());
+					dq(RelocAddr<std::uintptr_t>(rva + 6).getUIntPtr());
 				}
 			};
 
@@ -94,7 +98,6 @@ namespace game
 				_callback() = callback;
 				auto reloc = RelocAddr<std::uintptr_t>(rva);
 				game::hooks::trampoline()->write6Branch(reloc.getUIntPtr(), reinterpret_cast<std::uintptr_t>(&fcn));
-				safeWrite8(reloc.getUIntPtr() + 6, 0x90);
 			}
 
 		private:
